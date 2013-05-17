@@ -1,8 +1,8 @@
 package tcprouter
 
 import (
-	l "github.com/ciju/gotunnel/log"
-	"github.com/ciju/gotunnel/rwtunnel"
+	l "../log"
+	"../rwtunnel"
 	"io"
 	"net"
 	"strconv"

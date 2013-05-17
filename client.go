@@ -8,10 +8,8 @@ import (
 )
 
 import (
-	"github.com/ciju/gotunnel/gtclient"
-	l "github.com/ciju/gotunnel/log"
-	hs "github.com/ciju/gotunnel/simplehttpserver"
-	"github.com/ciju/vercheck"
+	"./gtclient"
+	hs "./simplehttpserver"
 )
 
 var version string
@@ -20,7 +18,6 @@ var (
 	port         = flag.String("p", "", "port")
 	subdomain    = flag.String("sub", "", "request subdomain to serve on")
 	remote       = flag.String("r", "localtunnel.net:34000", "the remote gotunnel server host/ip:port")
-	skipVerCheck = flag.Bool("sc", false, "Skip version check")
 	fileServer   = flag.Bool("fs", false, "Server files in the current directory. Use -p to specify the port.")
 	serveDir     = flag.String("d", "", "The directory to serve. To be used with -fs.")
 	showVersion  = flag.Bool("v", false, "Show version and exit")
@@ -48,16 +45,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !*skipVerCheck {
-		if vercheck.HasMinorUpdate(
-			"https://raw.github.com/ciju/gotunnel/master/VERSION",
-			version,
-		) {
-			l.Info("\nNew version of Gotunnel is available. Please update your code and run again. Or start with option -sc to continue with this version.\n")
-			os.Exit(0)
-		}
-	}
-
 	if *fileServer {
 		dir := ""
 		// Simple file server.
@@ -83,7 +70,7 @@ func main() {
 
 	go func() {
 		serverat := <-servInfo
-		fmt.Printf("Your site should be available at: \033[1;34m%s\033[0m\n", serverat)
+		fmt.Printf("Your site should be available at: %s\n", serverat)
 	}()
 
 	if !gtclient.SetupClient(*port, *remote, *subdomain, servInfo) {

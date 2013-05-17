@@ -8,9 +8,9 @@ import (
 )
 
 import (
-	l "github.com/ciju/gotunnel/log"
-	proto "github.com/ciju/gotunnel/protocol"
-	"github.com/ciju/gotunnel/rwtunnel"
+	l "../log"
+	proto "../protocol"
+	"../rwtunnel"
 )
 
 func ensureServer(addr string) bool {
@@ -50,7 +50,7 @@ func setupHeartbeat(c net.Conn) {
 func setupCommandChannel(addr, sub string, req, quit chan bool, conn, servInfo chan string) {
 	backproxy, err := net.Dial("tcp", addr)
 	if err != nil {
-		l.Log("CMD: Couldn't connect to ", addr, "err: ", err)
+		l.Log(err.Error())
 		quit <- true
 		return
 	}
@@ -83,12 +83,14 @@ func SetupClient(port, remote, subdomain string, servInfo chan string) bool {
 
 	go setupCommandChannel(remote, subdomain, req, quit, conn, servInfo)
 
-	remoteProxy := <-conn
+	var remoteProxy string
 
 	// l.Log("remote proxy: %v", remoteProxy)
 
 	for {
 		select {
+		case remoteProxy = <-conn:
+			
 		case <-req:
 			// fmt.Printf("New link b/w %s and %s\n", remoteProxy, localServer)
 			rp, err := net.Dial("tcp", remoteProxy)
@@ -105,7 +107,7 @@ func SetupClient(port, remote, subdomain string, servInfo chan string) bool {
 			go rwtunnel.NewRWTunnel(rp, lp)
 		case <-quit:
 			return true
-		}
+		} 
 	}
 	return true
 }

@@ -3,7 +3,7 @@ package httpheadreader
 import (
 	"bufio"
 	"bytes"
-	l "github.com/ciju/gotunnel/log"
+	l "../log"
 	"net"
 	"net/http"
 	"regexp"
@@ -27,10 +27,11 @@ func (c *HTTPHeadReader) parseHeaders() (err error) {
 
 	n, err := c.conn.Read(buf[0:])
 	if err != nil {
-		l.Log("H: error while reading", err)
+		l.Log("H: error while reading: %s", err.Error())
 		return err
 	}
-	l.Log("H: bytes", n)
+	l.Log("H: bytes %d", n)
+//	l.Info(string(buf[0:n]))
 	c.buf = make([]byte, n)
 	copy(c.buf, buf[0:n])
 
@@ -51,7 +52,7 @@ func (c *HTTPHeadReader) regexpHost() string {
 	}
 
 	if reg.Match(c.buf[0:]) {
-		l.Log("H: found host: ", reg.FindString(string(c.buf[0:])))
+		l.Log("H: found host: %s", reg.FindString(string(c.buf[0:])))
 		return reg.FindString(string(c.buf[0:]))
 	}
 	return ""
@@ -64,7 +65,7 @@ func (c *HTTPHeadReader) Host() string {
 
 	err := c.parseHeaders()
 	if err != nil {
-		l.Log("H: error", err)
+		l.Log("H: error: %s", err.Error())
 		return c.regexpHost()
 	}
 

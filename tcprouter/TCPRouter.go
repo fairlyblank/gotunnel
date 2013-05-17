@@ -2,7 +2,7 @@ package tcprouter
 
 import (
 	"fmt"
-	l "github.com/ciju/gotunnel/log"
+	l "../log"
 	"io"
 	"math/rand"
 	"net"
@@ -75,7 +75,7 @@ func IdForHost(host string) (string, bool) {
 	}
 
 	if reg.Match([]byte(host)) {
-		l.Log("Router: id for host", reg.FindString(h), host)
+		l.Log("Router: id \"%s\" for host", reg.FindString(h), host)
 		return reg.FindString(host), true
 	}
 	return "", false
@@ -108,7 +108,7 @@ func (r *TCPRouter) Register(ac net.Conn, suggestedId string) (proxy *Proxy) {
 		id = newRandString()
 	}
 
-	l.Log("Router: registering with (%s)", id)
+	l.Log("Router: registering with \"%s\"", id)
 	r.proxies[id] = &Proxy{Proxy: proxyClient, Admin: ac, id: id}
 
 	return r.proxies[id]
