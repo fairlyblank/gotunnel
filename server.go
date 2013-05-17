@@ -8,10 +8,10 @@ import (
 )
 
 import (
-	"github.com/ciju/gotunnel/httpheadreader"
-	l "github.com/ciju/gotunnel/log"
-	proto "github.com/ciju/gotunnel/protocol"
-	"github.com/ciju/gotunnel/tcprouter"
+	"./httpheadreader"
+	l "./log"
+	proto "./protocol"
+	"./tcprouter"
 )
 
 // for isAlive
@@ -54,7 +54,7 @@ func isAlive(c net.Conn) (ret bool) {
 func setupClient(eaddr, port string, adminc net.Conn) {
 	id := proto.ReceiveSubRequest(adminc)
 
-	l.Log("Client: asked for ", connStr(adminc), id)
+	l.Log("Client: asked for \"%s\" %s", id, connStr(adminc))
 
 	proxy := router.Register(adminc, id)
 
@@ -74,12 +74,12 @@ func setupClient(eaddr, port string, adminc net.Conn) {
 }
 
 func fwdRequest(conn net.Conn) {
-	l.Log("Request: ", connStr(conn))
+	l.Log("Request: %s", connStr(conn))
 	hcon := httpheadreader.NewHTTPHeadReader(conn)
 
-	l.Log("Request: host:", hcon.Host())
+	l.Log("Request: host: %s", hcon.Host())
 
-	if hcon.Host() == *externAddr || hcon.Host() == "www."+*externAddr {
+	if hcon.Host() == *externAddr+":"+*port || hcon.Host() == "www."+*externAddr+":"+*port {
 		conn.Write([]byte(defaultMsg))
 		conn.Close()
 		return
@@ -90,7 +90,7 @@ func fwdRequest(conn net.Conn) {
 
 	p, ok := router.GetProxy(hcon.Host())
 	if !ok {
-		l.Log("Request: coundn't find proxy for", hcon.Host())
+		l.Log("Request: coundn't find proxy for %s", hcon.Host())
 		conn.Write([]byte(fmt.Sprintf("Couldn't fine proxy for <%s>", hcon.Host())))
 		conn.Close()
 		return
@@ -131,13 +131,13 @@ func main() {
 	go func() {
 		backproxy, err := net.Listen("tcp", *backproxyAdd)
 		if err != nil {
-			l.Fatal("Client: Coundn't start server to connect clients", err)
+			l.Fatal("Client: Coundn't start server to connect clients: %s", err.Error())
 		}
 
 		for {
 			adminc, err := backproxy.Accept()
 			if err != nil {
-				l.Fatal("Client: Problem accepting new client", err)
+				l.Fatal("Client: Problem accepting new client: %s", err.Error())
 			}
 			go setupClient(*externAddr, *port, adminc)
 		}
@@ -161,5 +161,5 @@ func main() {
 }
 
 func connStr(conn net.Conn) string {
-	return string(conn.LocalAddr().String()) + " <-> " + string(conn.RemoteAddr().String())
+	return conn.LocalAddr().String() + " <-> " + conn.RemoteAddr().String()
 }
