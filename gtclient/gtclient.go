@@ -29,16 +29,21 @@ func ensureServer(addr string) bool {
 	return true
 }
 
-func setupHeartbeat(c net.Conn) {
-
+func setupHeartbeat(c net.Conn, quit chan bool) {
+	cnt := 0
 	for {
 		time.Sleep(1 * time.Second)
 		c.SetWriteDeadline(time.Now().Add(3 * time.Second))
 
 		_, err := c.Write([]byte("ping"))
 		if err != nil {
-			l.Log("Couldn't connect to server. Check your network connection, and run client again.")
-			os.Exit(1)
+			l.Log("Heart beating failed, maybe connection was lost.\n%s", err.Error())
+			cnt++
+			if cnt > 3 {
+				quit <- true
+			}
+		} else {
+			cnt = 0
 		}
 	}
 }
@@ -50,7 +55,7 @@ func setupHeartbeat(c net.Conn) {
 func setupCommandChannel(addr, sub string, req, quit chan bool, conn, servInfo chan string) {
 	backproxy, err := net.Dial("tcp", addr)
 	if err != nil {
-		l.Log(err.Error())
+		l.Log("Coundn't establish control connection\n%s", err.Error())
 		quit <- true
 		return
 	}
@@ -63,7 +68,7 @@ func setupCommandChannel(addr, sub string, req, quit chan bool, conn, servInfo c
 	conn <- conn_to
 	servInfo <- serverat
 
-	go setupHeartbeat(backproxy)
+	go setupHeartbeat(backproxy, quit)
 
 	for {
 		req <- proto.ReceiveConnRequest(backproxy)
@@ -83,24 +88,28 @@ func SetupClient(port, remote, subdomain string, servInfo chan string) bool {
 
 	go setupCommandChannel(remote, subdomain, req, quit, conn, servInfo)
 
-	var remoteProxy string
+	var remoteProxy string = ""
+	select {
+	case remoteProxy = <-conn:
+
+	case <-quit:
+		return true
+	}
 
 	// l.Log("remote proxy: %v", remoteProxy)
 
 	for {
 		select {
-		case remoteProxy = <-conn:
-			
 		case <-req:
 			// fmt.Printf("New link b/w %s and %s\n", remoteProxy, localServer)
 			rp, err := net.Dial("tcp", remoteProxy)
 			if err != nil {
-				l.Log("Coundn't connect to remote clientproxy", err)
+				l.Log("Coundn't connect to remote clientproxy\n%s", err.Error())
 				return false
 			}
 			lp, err := net.Dial("tcp", localServer)
 			if err != nil {
-				l.Log("Couldn't connect to localserver", err)
+				l.Log("Couldn't connect to localserver\n%s", err.Error())
 				return false
 			}
 
